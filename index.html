@@ -366,10 +366,22 @@
                 </div>
             `;
             
-            const img = new Image();
-            img.onload = function() {
+            // 使用fetch API绕过OSS强制下载问题
+            fetch(imagePath, {
+                method: 'GET',
+                mode: 'cors'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const objectURL = URL.createObjectURL(blob);
+                
                 heatmapContainer.innerHTML = `
-                    <img src="${imagePath}" alt="${tf} Heatmap" class="heatmap-image">
+                    <img src="${objectURL}" alt="${tf} Heatmap" class="heatmap-image" onload="setTimeout(() => URL.revokeObjectURL('${objectURL}'), 1000)">
                     <div style="margin-top: 10px; font-size: 12px; color: #666;">
                         <strong>Transcription Factor:</strong> ${tf} | <strong>ENCODE Dataset:</strong> ${encode} | <strong>Chr:</strong> ${chr}<br>
                         <strong>Genomic Window:</strong> ${pngInfo.startPosition.toLocaleString()} - ${pngInfo.endPosition.toLocaleString()} bp<br>
@@ -377,13 +389,10 @@
                         <strong>Coordinate Offset:</strong> ${pngInfo.distanceFromInput.toLocaleString()} bp | <strong>Dataset:</strong> ${pngInfo.filename}
                     </div>
                 `;
-            };
-            
-            img.onerror = function() {
-                showError(`Unable to load image: ${pngInfo.filename}<br>Please check if the file exists at path: ${imagePath}`);
-            };
-            
-            img.src = imagePath;
+            })
+            .catch(error => {
+                showError(`Unable to retrieve heatmap data: ${pngInfo.filename}<br>Please verify dataset availability at: ${imagePath}<br>Error: ${error.message}`);
+            });
         }
         
         function showError(message) {
