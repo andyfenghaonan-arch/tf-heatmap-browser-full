@@ -1,6 +1,6 @@
 # Transcription Factor ChIP-seq Heatmap Browser
 
-A web-based visualization tool for exploring transcription factor binding patterns using ENCODE ChIP-seq datasets.
+A web-based visualization tool for exploring transcription factor binding patterns using Hi-ChIP.
 
 ## Features
 
@@ -18,7 +18,7 @@ A web-based visualization tool for exploring transcription factor binding patter
    - Select ENCODE experiment ID
    - Pick chromosome (chr1-chr22)
    - Enter genomic position
-3. **View Results**: Generate and explore ChIP-seq heatmaps
+3. **View Results**: Generate and explore Hi-ChIP heatmaps
 
 ## Usage
 
