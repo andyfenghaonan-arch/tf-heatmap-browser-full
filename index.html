@@ -88,6 +88,26 @@
             cursor: not-allowed;
         }
         
+        .download-btn {
+            padding: 8px 16px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 5px;
+        }
+        
+        .download-btn:hover {
+            background: #1976D2;
+        }
+        
+        .download-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
         .heatmap-container {
             text-align: center;
             margin-top: 20px;
@@ -197,6 +217,7 @@
                 <div class="position-input">
                     <input type="number" id="positionInput" placeholder="Enter position (bp)" disabled>
                     <button class="search-btn" id="searchBtn" disabled>View</button>
+                    <button class="download-btn" id="downloadBtn" disabled>Download</button>
                 </div>
             </div>
         </div>
@@ -248,6 +269,7 @@
         const chrSelect = document.getElementById('chrSelect');
         const positionInput = document.getElementById('positionInput');
         const searchBtn = document.getElementById('searchBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
         const heatmapContainer = document.getElementById('heatmapContainer');
         const chromosomesDiv = document.getElementById('chromosomes');
         
@@ -258,6 +280,7 @@
             chrSelect.disabled = true;
             positionInput.disabled = true;
             searchBtn.disabled = true;
+            downloadBtn.disabled = true;
             chromosomesDiv.style.display = 'none';
             
             if (selectedTF && tfEncodeMap[selectedTF]) {
@@ -277,6 +300,7 @@
             chrSelect.disabled = !selectedEncode;
             positionInput.disabled = true;
             searchBtn.disabled = true;
+            downloadBtn.disabled = true;
             
             if (selectedEncode) {
                 chromosomes.forEach(chr => {
@@ -296,6 +320,7 @@
             const selectedChr = this.value;
             positionInput.disabled = !selectedChr;
             searchBtn.disabled = !selectedChr;
+            downloadBtn.disabled = !selectedChr;
             
             document.querySelectorAll('.chr-btn').forEach(btn => {
                 btn.classList.remove('selected');
@@ -403,7 +428,53 @@
             `;
         }
         
+        function downloadImage() {
+            const tf = tfSelect.value;
+            const encode = encodeSelect.value;
+            const chr = chrSelect.value;
+            const position = parseInt(positionInput.value);
+            
+            if (!tf || !encode || !chr || position === null || position === undefined || isNaN(position)) {
+                showError('Please configure all experimental parameters (TF, ENCODE ID, chromosome, and genomic coordinate).');
+                return;
+            }
+            
+            if (position < 0) {
+                showError('Genomic coordinate must be a positive integer (base pair position).');
+                return;
+            }
+            
+            const pngInfo = calculateNearestPNG(position);
+            const imagePath = `https://tf-heatmap-browser.oss-cn-hangzhou.aliyuncs.com/data/${tf}/${encode}/${chr}/${pngInfo.filename}`;
+            
+            fetch(imagePath, {
+                method: 'GET',
+                mode: 'cors'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `${tf}_${encode}_${pngInfo.filename}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            })
+            .catch(error => {
+                showError(`Unable to download heatmap data: ${pngInfo.filename}<br>Please verify dataset availability at: ${imagePath}<br>Error: ${error.message}`);
+            });
+        }
+        
         searchBtn.addEventListener('click', displayHeatmap);
+        downloadBtn.addEventListener('click', downloadImage);
         
         positionInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
